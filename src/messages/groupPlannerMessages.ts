@@ -28,6 +28,17 @@ export function createGroupJoinMessage(): messagingApi.TextMessage {
   };
 }
 
+export function createGroupSearchLoadingMessage(): messagingApi.TextMessage {
+  return {
+    type: 'text',
+    text: [
+      '☕ 收到位置！正在幫大家找附近的咖啡廳，請稍等一下⋯',
+      '',
+      '找到後可以把喜歡的店加入群組候選，再一起投票。'
+    ].join('\n')
+  };
+}
+
 export function createGroupPlanStartedMessage(
   alreadyActive = false
 ): messagingApi.TextMessage {

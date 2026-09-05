@@ -21,8 +21,11 @@ import {
   isMenuScanCommand
 } from '../messages/menuRecommendationMessages.js';
 import { handleGroupPlannerText } from './groupPlannerTextHandler.js';
-import { getGroupPlan, GroupPlanError } from '../services/groupPlanStore.js';
-import { createGroupJoinMessage } from '../messages/groupPlannerMessages.js';
+import { createGroupPlan } from '../services/groupPlanStore.js';
+import {
+  createGroupJoinMessage,
+  createGroupSearchLoadingMessage
+} from '../messages/groupPlannerMessages.js';
 
 async function reply(replyToken: string, messages: messagingApi.Message[]) {
   await lineClient.replyMessage({ replyToken, messages });
@@ -87,8 +90,18 @@ export async function handleWebhookEvent(event: WebhookEvent): Promise<void> {
   const startedAt = Date.now();
   const targetId = getConversationId(event.source);
   const ownerId = getActorId(event.source);
+  let groupPlanId: string | undefined;
 
-  if (targetId) {
+  if (event.source.type === 'group') {
+    if (!targetId || !ownerId) {
+      await reply(event.replyToken, [{
+        type: 'text',
+        text: '目前無法確認群組或傳送位置的成員，請稍後再試。'
+      }]);
+      return;
+    }
+    await reply(event.replyToken, [createGroupSearchLoadingMessage()]);
+  } else if (event.source.type === 'user' && targetId) {
     try {
       await lineClient.showLoadingAnimation({
         chatId: targetId,
@@ -106,6 +119,14 @@ export async function handleWebhookEvent(event: WebhookEvent): Promise<void> {
   });
 
   try {
+    if (event.source.type === 'group' && targetId && ownerId) {
+      const groupPlan = await createGroupPlan({
+        conversationId: targetId,
+        creatorId: ownerId
+      });
+      groupPlanId = groupPlan.plan.id;
+    }
+
     const [savedPreferences, journeyProfile] = ownerId
       ? await Promise.all([
           getCafePreferences(ownerId),
@@ -143,15 +164,6 @@ export async function handleWebhookEvent(event: WebhookEvent): Promise<void> {
       }
     }
 
-    let groupPlanId: string | undefined;
-    if (event.source.type === 'group' && targetId) {
-      try {
-        const groupPlan = await getGroupPlan(targetId);
-        groupPlanId = groupPlan.status === 'open' ? groupPlan.id : undefined;
-      } catch (error) {
-        if (!(error instanceof GroupPlanError)) throw error;
-      }
-    }
     const messages = createCafeResultMessages(result, sessionId, groupPlanId);
 
     if (targetId) {

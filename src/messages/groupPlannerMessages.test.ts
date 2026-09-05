@@ -12,6 +12,7 @@ const {
   createGroupPlanFinalMessage,
   createGroupPlanMessages,
   createGroupPlanStartedMessage,
+  createGroupSearchLoadingMessage,
   createVoteRecordedMessages
 } = await import('./groupPlannerMessages.js');
 
@@ -35,6 +36,11 @@ test('explains that planning must start in a group', () => {
 
 test('introduces the command when invited to a group', () => {
   assert.match(createGroupJoinMessage().text, /一起選咖啡廳/);
+});
+
+test('uses a text status while searching in a group', () => {
+  assert.match(createGroupSearchLoadingMessage().text, /正在幫大家找/);
+  assert.match(createGroupSearchLoadingMessage().text, /加入群組候選/);
 });
 
 test('starts with a location quick reply', () => {
