@@ -171,18 +171,38 @@ function createSourceBubble(
     footer: {
       type: 'box',
       layout: 'vertical',
-      contents: [
-        {
-          type: 'button',
-          style: 'primary',
-          color: '#6F4E37',
-          action: {
-            type: 'uri',
-            label: '在 Google Maps 查看',
-            uri: source.uri
-          }
-        },
-        ...(sessionId
+      contents: groupPlanId && sessionId
+        ? [
+            {
+              type: 'button',
+              style: 'primary',
+              color: '#6F4E37',
+              action: {
+                type: 'postback',
+                label: '加入群組候選',
+                data: createGroupCandidateData(groupPlanId, sessionId, index + 1),
+                displayText: `加入群組候選：${source.title}`.slice(0, 300)
+              }
+            },
+            {
+              type: 'button',
+              action: {
+                type: 'uri',
+                label: '先看地圖資訊',
+                uri: source.uri
+              }
+            }
+          ]
+        : [{
+            type: 'button',
+            style: 'primary',
+            color: '#6F4E37',
+            action: {
+              type: 'uri',
+              label: '在 Google Maps 查看',
+              uri: source.uri
+            }
+          }, ...(sessionId
           ? [{
               type: 'button' as const,
               action: createCafeDatetimePickerActionForCafe(sessionId, index + 1)
@@ -202,17 +222,9 @@ function createSourceBubble(
                 data: createWishlistAddData(sessionId, index + 1),
                 displayText: `收藏：${source.title}`.slice(0, 300)
               }
-            }, ...(groupPlanId ? [{
-              type: 'button' as const,
-              action: {
-                type: 'postback' as const,
-                label: '加入群組候選',
-                data: createGroupCandidateData(groupPlanId, sessionId, index + 1),
-                displayText: `加入群組候選：${source.title}`.slice(0, 300)
-              }
-            }] : [])]
+            }]
           : [])
-      ]
+        ]
     }
   };
 }
@@ -238,6 +250,16 @@ export function createCafeResultMessages(
     },
     quickReply: {
       items: [
+        ...(groupPlanId
+          ? [{
+              type: 'action' as const,
+              action: {
+                type: 'message' as const,
+                label: '查看並投票',
+                text: '查看群組投票'
+              }
+            }]
+          : []),
         ...(sessionId
           ? [
               {
@@ -275,5 +297,22 @@ export function createCafeResultMessages(
     }
   };
 
-  return [summary, sourceCarousel];
+  const groupNextStep: messagingApi.TextMessage | undefined = groupPlanId
+    ? {
+        type: 'text',
+        text: [
+          '👇 接下來這樣做',
+          '',
+          '1. 左右滑動比較推薦店家',
+          '2. 在喜歡的店卡片上點「加入群組候選」',
+          '3. 加好候選後，點下方「查看並投票」',
+          '',
+          '最多可以加入 5 間，建議先選 2～3 間再開始投票。'
+        ].join('\n')
+      }
+    : undefined;
+
+  return groupNextStep
+    ? [summary, groupNextStep, sourceCarousel]
+    : [summary, sourceCarousel];
 }

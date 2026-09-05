@@ -49,15 +49,23 @@ test('adds datetime, journey, and wishlist buttons to each cafe card', () => {
 
 test('adds group candidate actions when an active group plan is provided', () => {
   const messages = createCafeResultMessages(result, 'session_123', 'plan_123');
-  const flex = messages[1];
+  assert.equal(messages.length, 3);
+  const guide = messages[1];
+  assert.equal(guide?.type, 'text');
+  if (guide?.type === 'text') assert.match(guide.text, /接下來.*加入群組候選/su);
+  const flex = messages[2];
   assert.equal(flex?.type, 'flex');
   if (flex?.type !== 'flex' || flex.contents.type !== 'carousel') return;
   const bubble = flex.contents.contents[0];
   assert.equal(bubble?.type, 'bubble');
   if (bubble?.type !== 'bubble' || bubble.footer?.type !== 'box') return;
-  assert.equal(bubble.footer.contents.some((content) =>
-    content.type === 'button' && content.action.label === '加入群組候選'
-  ), true);
+  assert.deepEqual(
+    bubble.footer.contents.flatMap((content) =>
+      content.type === 'button' ? [content.action.label] : []
+    ),
+    ['加入群組候選', '先看地圖資訊']
+  );
+  assert.equal((flex.quickReply?.items ?? [])[0]?.action?.type, 'message');
 });
 
 test('still offers datetime and location actions when session storage is unavailable', () => {
